@@ -35,7 +35,7 @@
              <!-- <span slot="title">分组一</span> -->
               <el-menu-item index="/classify">书籍分类</el-menu-item>
               <el-menu-item index="/books">获取书籍</el-menu-item>
-              <el-menu-item index="/router2">已选择书籍</el-menu-item>
+              <el-menu-item index="/booked">已选择书籍</el-menu-item>
             </el-menu-item-group>
           </el-submenu>
           <el-submenu index="3">

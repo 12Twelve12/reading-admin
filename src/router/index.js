@@ -5,6 +5,7 @@ import Login from '@/components/Login'
 import Home from '@/components/Home'
 import Welcome from '@/components/Welcome'
 import Books from '@/components/Books'
+import Booked from '@/components/Booked'
 import Users from '@/components/Users'
 import Classify from '@/components/Book_Classify'
 
@@ -33,7 +34,8 @@ export default new Router({
       children:[{path:'/welcome',component:Welcome},
                 {path:'/users',component:Users},
                 {path:'/books',component:Books},
-                {path:'/classify',component:Classify}]
+                {path:'/classify',component:Classify},
+                 {path:'/booked',component:Booked},]
     }
   ]
 })

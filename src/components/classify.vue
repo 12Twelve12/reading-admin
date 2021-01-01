@@ -1,5 +1,5 @@
 <template>
-  <el-select v-model="value_select" placeholder="请选择">
+  <el-select v-model="value_select" placeholder="请选择" @change="change">
     <el-option
       v-for="item in options"
       :key="item.id"
@@ -14,7 +14,8 @@
     data() {
       return {
         options: [],
-        value_select: ''
+        value_select: '',
+        tableData:[]
       }
     },
     created() {
@@ -30,6 +31,9 @@
             this.options=res.data
           }
         })
+      },
+      change(val){
+        this.$emit('child-event',val)
       }
     }
   }

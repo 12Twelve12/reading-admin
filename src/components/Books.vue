@@ -15,6 +15,8 @@
       </el-table-column>
       <el-table-column prop="author" label="作者" width="120">
       </el-table-column>
+      <el-table-column prop="isSelected" label="已上传" width="120">
+      </el-table-column>
       <el-table-column prop="des" label="简介" show-overflow-tooltip>
       </el-table-column>
     </el-table>
@@ -43,9 +45,10 @@
       return {
         tableData: [],
         multipleSelection: [],
-        currentPage4: 1,
+        currentPage4: 1,//当前页
         counts: 0,
         dialogFormVisible: false,
+        ids:[]//为了修改mongodb中的idSelected
       }
     },
     components: {
@@ -57,19 +60,22 @@
     methods: {
       handleSelectionChange(val) {
         let selects = []
+        let ids=[]
         for (let i = 0; i < val.length; i++) {
           selects.push({
-            "id": val[i].id.$oid,
+            "mongoId": val[i].id.$oid,
             "title": val[i].title,
             "img": val[i].img,
             "author": val[i].author,
             "des": val[i].des,
             "uploader": "本站",
             "classifyId": 0
-          })
+          });
+          ids.push(val[i].id.$oid);
         }
         // console.log(selects)
         this.multipleSelection = selects;
+        this.ids=ids;
       },
       // 获取请求菜单
       async getTableData(page) {
@@ -85,56 +91,30 @@
         console.log(`每页 ${val} 条`);
       },
       handleCurrentChange(val) {
-        this.getTableData(val)
+        this.getTableData(val);
+        this.currentPage4=val;
         console.log(`当前页: ${val}`);
       },
       onSubmit() {
-
-        this.multipleSelection[0].classifyId = this.$refs.classify_select.value_select;
-        console.log(this.multipleSelection);
-        let postData = this.$qs.stringify({
-          mongoId: this.multipleSelection[0].id,
-          title: this.multipleSelection[0].title,
-          img: this.multipleSelection[0].img,
-          author: this.multipleSelection[0].author,
-          des: this.multipleSelection[0].des,
-          uploader: this.multipleSelection[0].uploader,
-          classifyId: this.multipleSelection[0].classifyId
-        });
-        this.axios({
-          method: 'post',
-          url: 'book/insert',
-          data: postData
-        }).then((res) => {
+        let params = {
+          bookList: JSON.stringify(this.multipleSelection),
+          classify_id: this.$refs.classify_select.value_select
+        }
+        this.axios.post('book/insertMany', this.$qs.stringify(params)).then((res) => {
           if (res) {
             this.dialogFormVisible = false;
             this.$message({
               message: '添加成功',
               type: 'success'
             });
+             //添加成功同时修改mongodb中的上传状态
+            this.axios.put('http://127.0.0.1:8000/cmdb/index/', {"ids":this.ids}).then((res) => {
+                  if(res.data){
+                    this.getTableData(this.currentPage4);
+                  }
+            })
           }
         })
-        // this.axios.post('book/insert', , {
-        //   headers: {
-        //     'Content-Type': 'application/json'
-        //   }
-        // })
-        // console.log(this.$refs.classify_select.value_select);
-        // this.axios.post('book/insertMany', JSON.stringify({
-        //   books: this.multipleSelection
-        // }),{headers: {'Content-Type': 'application/json'}})
-        // this.$http.post('book/insertMany', JSON.stringify({
-        //     books: this.multipleSelection
-        //   })
-        //   // classify_id: this.$refs.classify_select.value_select
-        //   , {
-        //     contentType: application/json
-        //   }, {
-        //     emulateJSON: true
-        //   }).then(result => {
-        //   console.log(result)
-        // })
-        // if (res.code !== 0) return this.$message.error("加载失败")
       }
     }
   }
