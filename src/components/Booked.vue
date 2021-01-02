@@ -1,7 +1,7 @@
 <template>
   <div>
-    <Classify ref="classify_select" @child-event="getTableData"></Classify>
-
+    <Classify ref="classify_select" @child-event="getData"></Classify>
+    <el-button type="text" @click="delete_books">删除</el-button>
     <el-table ref="multipleTable" :data="tableData" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55">
       </el-table-column>
@@ -37,10 +37,11 @@
       return {
         tableData: [],
         multipleSelection: [],
-        currentPage4: 1,//当前页
+        currentPage4: 1, //当前页
         counts: 0,
-        ids:[],//为了修改mongodb中的idSelected
-        selVal:0
+        mongo_ids: [], //为了修改mongodb中的idSelected
+        ids:[],
+        selVal: 0 //子组件传过来的classifyId
       }
     },
     components: {
@@ -51,35 +52,81 @@
     // },
     methods: {
       handleSelectionChange(val) {
-        let ids=[]
+        let mongo_ids = [];
+        let ids=[];
         for (let i = 0; i < val.length; i++) {
-          ids.push(val[i].id.$oid);
+          mongo_ids.push(val[i].mongoId);
+          ids.push(val[i].id);
         }
-        this.ids=ids;
+        this.ids = ids;
+        this.mongo_ids=mongo_ids;
       },
-      // 获取请求菜单
-      async getTableData(classifyId) {
-        let page=this.currentPage4;
+      // 获取子组件参数，选择器改变就会触发
+      getData(classifyId) {
+        this.selVal = classifyId;
+        this.getTableData(classifyId, 1);
+      },
+      //请求数据
+      getTableData(classifyId, page) {
         let limit = 5;
         let offset = (page - 1) * limit;
         this.axios({
           method: 'get',
-          url: 'book/queryAll?classifyId=' + classifyId+'&offset=' + offset + '&limit=' + limit ,
+          url: 'book/queryAll?classifyId=' + classifyId + '&offset=' + offset + '&limit=' + limit,
         }).then((res) => {
-           console.log(res);
-           this.tableData=res.data;
+          console.log(res);
+          this.tableData = res.data.bookList;
+          this.counts = res.data.count;
         })
-
-        // this.counts = res.count
-        console.log('父组件：'+classifyId)
       },
       handleSizeChange(val) {
         console.log(`每页 ${val} 条`);
       },
       handleCurrentChange(val) {
         // this.getTableData(val);
-        this.currentPage4=val;
+        this.currentPage4 = val;
         console.log(`当前页: ${val}`);
+        this.getTableData(this.selVal, val);
+      },
+      //删除书
+      delete_books() {
+        this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          console.log(this.ids);
+          this.axios.delete('book/delete', {
+            params: {
+              ids: this.ids
+            },
+            paramsSerializer: params => {
+              return this.$qs.stringify(params, {
+                indices: false
+              })
+            }
+          }).then((res) => {
+            if (res) {
+              this.$message({
+                message: '删除成功',
+                type: 'success'
+              });
+              //删除成功同时修改mongodb中的上传状态
+              this.axios.post('http://127.0.0.1:8000/cmdb/index/', {
+                "ids": this.mongo_ids
+              }).then((res) => {
+                if (res.data) {
+                  this.getTableData(this.selVal, 1);
+                }
+              })
+            }
+          })
+        }).catch(() => {
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
       }
 
     }
